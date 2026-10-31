@@ -208,4 +208,17 @@ public final class RuleUtil
             return !eventSrcName.startsWith( CHECKSTYLE_PACKAGE );
         }
     }
+
+    public static boolean ignore( List<Matcher> ignores, String source )
+    {
+        for ( Matcher ignore : ignores )
+        {
+            if ( ignore.match( source ) )
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

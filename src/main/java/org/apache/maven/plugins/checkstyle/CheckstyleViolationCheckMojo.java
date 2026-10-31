@@ -636,7 +636,7 @@ public class CheckstyleViolationCheckMojo
 
                 String source = xpp.getAttributeValue( "", "source" );
 
-                if ( ignore( ignores, source ) )
+                if ( RuleUtil.ignore( ignores, source ) )
                 {
                     ignoreCount++;
                 }
@@ -709,18 +709,6 @@ public class CheckstyleViolationCheckMojo
         {
             return false;
         }
-    }
-
-    private boolean ignore( List<RuleUtil.Matcher> ignores, String source )
-    {
-        for ( RuleUtil.Matcher ignore : ignores )
-        {
-            if ( ignore.match( source ) )
-            {
-                return true;
-            }
-        }
-        return false;
     }
 
     private DefaultLogger getConsoleListener()
