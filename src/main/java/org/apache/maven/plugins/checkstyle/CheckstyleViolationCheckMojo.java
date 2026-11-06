@@ -568,7 +568,8 @@ public class CheckstyleViolationCheckMojo
             XmlPullParser xpp = new MXParser();
             xpp.setInput( reader );
 
-            int violations = countViolations( xpp );
+            int violations = new ViolationCounter( getLog(), violationIgnore, violationSeverity,
+                logViolationsToConsole, project.getBasedir().getAbsolutePath() ).countViolations( xpp );
 
             if ( violations > maxAllowedViolations )
             {
@@ -602,125 +603,6 @@ public class CheckstyleViolationCheckMojo
                 + " from the maven-checkstyle-plugin. " + "Please use '" + replacement
                 + "' and refer to the >>Major Version Upgrade to version 3.0.0<< " + "on the plugin site." );
         }
-    }
-
-    private int countViolations( XmlPullParser xpp )
-        throws XmlPullParserException, IOException
-    {
-        int count = 0;
-        int ignoreCount = 0;
-        List<RuleUtil.Matcher> ignores = violationIgnore == null ? Collections.<RuleUtil.Matcher>emptyList()
-                        : RuleUtil.parseMatchers( violationIgnore.split( "," ) );
-
-        String basedir = project.getBasedir().getAbsolutePath();
-        String file = "";
-        for ( int eventType = xpp.getEventType(); eventType != XmlPullParser.END_DOCUMENT; eventType = xpp.next() )
-        {
-            if ( eventType != XmlPullParser.START_TAG )
-            {
-                continue;
-            }
-            else if ( "file".equals( xpp.getName() ) )
-            {
-                file = PathTool.getRelativeFilePath( basedir, xpp.getAttributeValue( "", "name" ) );
-                //file = file.substring( file.lastIndexOf( File.separatorChar ) + 1 );
-            }
-            else if ( "error".equals( xpp.getName() ) )
-            {
-                String severity = xpp.getAttributeValue( "", "severity" );
-
-                if ( !isViolation( severity ) )
-                {
-                    continue;
-                }
-
-                String source = xpp.getAttributeValue( "", "source" );
-
-                if ( ignore( ignores, source ) )
-                {
-                    ignoreCount++;
-                }
-                else
-                {
-                    count++;
-
-                    if ( logViolationsToConsole )
-                    {
-                        String line = xpp.getAttributeValue( "", "line" );
-                        String column = xpp.getAttributeValue( "", "column" );
-                        String message = xpp.getAttributeValue( "", "message" );
-                        String rule = RuleUtil.getName( source );
-                        String category = RuleUtil.getCategory( source );
-
-                        log( severity, file + ":[" + line + ( ( column == null ) ? "" : ( ',' + column ) ) + "] ("
-                            + category + ") " + rule + ": " + message );
-                    }
-                }
-            }
-        }
-
-        if ( ignoreCount > 0 )
-        {
-            getLog().info( "Ignored " + ignoreCount + " error" + ( ( ignoreCount > 1 ) ? "s" : "" ) + ", " + count
-                               + " violation" + ( ( count > 1 ) ? "s" : "" ) + " remaining." );
-        }
-
-        return count;
-    }
-
-    private void log( String severity, String message )
-    {
-        if ( "info".equals( severity ) )
-        {
-            getLog().info( message );
-        }
-        else if ( "warning".equals( severity ) )
-        {
-            getLog().warn( message );
-        }
-        else
-        {
-            getLog().error( message );
-        }
-    }
-
-    /**
-     * Checks if the given severity is considered a violation.
-     *
-     * @param severity The severity to check
-     * @return <code>true</code> if the given severity is a violation, otherwise <code>false</code>
-     */
-    private boolean isViolation( String severity )
-    {
-        if ( "error".equals( severity ) )
-        {
-            return "error".equals( violationSeverity ) || "warning".equals( violationSeverity )
-                || "info".equals( violationSeverity );
-        }
-        else if ( "warning".equals( severity ) )
-        {
-            return "warning".equals( violationSeverity ) || "info".equals( violationSeverity );
-        }
-        else if ( "info".equals( severity ) )
-        {
-            return "info".equals( violationSeverity );
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-    private boolean ignore( List<RuleUtil.Matcher> ignores, String source )
-    {
-        for ( RuleUtil.Matcher ignore : ignores )
-        {
-            if ( ignore.match( source ) )
-            {
-                return true;
-            }
-        }
-        return false;
     }
 
     private DefaultLogger getConsoleListener()
